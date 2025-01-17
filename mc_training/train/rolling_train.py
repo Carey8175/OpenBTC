@@ -77,12 +77,15 @@ class RollingTrainer:
         train_losses_per_epoch = []
         val_losses_per_epoch = []
         val_accuracies_per_epoch = []
-        best_f1 = (0, 0, 0, 0) # accuracy, avg_precision, avg_recall, f1
+        best_f1 = (0, 0, 0, 0)  # accuracy, avg_precision, avg_recall, f1
 
         for epoch in range(epochs):
             # Training phase
             self.model.train()
             total_loss = 0
+            all_train_labels = []
+            all_train_predictions = []
+
             train_progress = tqdm(train_loader, desc=f"Training Epoch {epoch + 1}/{epochs}", leave=False)
             for x, y in train_progress:
                 x, y = x.to(self.device), y.to(self.device)
@@ -93,8 +96,15 @@ class RollingTrainer:
                 optimizer.step()
                 total_loss += loss.item()
 
-                # Update progress bar with real-time loss
-                train_progress.set_postfix(loss=loss.item())
+                # Collect predictions and true labels for metrics calculation
+                predictions = torch.argmax(outputs, dim=1)
+                all_train_labels.extend(y.cpu().numpy())
+                all_train_predictions.extend(predictions.cpu().numpy())
+
+                # Calculate real-time accuracy and F1 score
+                train_accuracy = accuracy_score(all_train_labels, all_train_predictions)
+                train_f1 = f1_score(all_train_labels, all_train_predictions, average='macro')
+                train_progress.set_postfix(loss=loss.item(), acc=train_accuracy, f1=train_f1)
 
             avg_train_loss = total_loss / len(train_loader)
             train_losses_per_epoch.append(avg_train_loss)
@@ -130,7 +140,9 @@ class RollingTrainer:
             val_accuracies_per_epoch.append(overall_accuracy)
 
             # Calculate precision, recall, and F1 score
-            precision, recall, f1, _ = precision_recall_fscore_support(all_labels, all_predictions, average='macro')
+            precision = precision_score(all_labels, all_predictions, average='macro')
+            recall = recall_score(all_labels, all_predictions, average='macro')
+            f1 = f1_score(all_labels, all_predictions, average='macro')
             classification_report_str = classification_report(all_labels, all_predictions)
 
             # Calculate per-label accuracy
@@ -144,6 +156,8 @@ class RollingTrainer:
             logger.info(f"Per-label Validation Accuracy: {label_accuracy}")
             logger.info(f"Precision: {precision:.4f}, Recall: {recall:.4f}, F1-Score: {f1:.4f}")
             logger.info(f"Classification Report:\n{classification_report_str}")
+
+            # Track best F1 score
             if f1 > best_f1[3]:
                 best_f1 = (overall_accuracy, precision, recall, f1)
 
@@ -278,13 +292,14 @@ if __name__ == '__main__':
         "stride": 10,
         "train_ratio": 0.8,
         "batch_size": 32,
-        "epoch_per_phase": 40,
+        "epoch_per_phase": 20,
         "device": 'cuda' if torch.cuda.is_available() else 'cpu',
         "start_date": datetime(2024, 1, 2),
         "end_date": datetime(2025, 1, 4),
         "total_days": 360,
         "inst_id": 'BTC-USDT-SWAP',
         "add_indicators": True,
+        "add_delta": False,
         "unit_size": 100,
         "day_stride": 50,
         "learning_rate": 5e-5
@@ -292,7 +307,8 @@ if __name__ == '__main__':
 
     # Load data
     dl = MCDataLoader()
-    dl.load_data(train_params['inst_id'], train_params['start_date'], train_params['end_date'], add_indicators=train_params['add_indicators'])
+    dl.load_data(train_params['inst_id'], train_params['start_date'], train_params['end_date'], add_indicators=train_params['add_indicators'],
+                 add_delta=train_params['add_delta'])
     # normalize data
     # dl.normalize_data('BTC-USDT-SWAP', method='min-max')
     dataset = RollingDataset(data_loader=dl,
@@ -319,3 +335,4 @@ if __name__ == '__main__':
     # Perform rolling training
     avg_metrics = trainer.rolling_train(total_days=train_params['total_days'],
                                         start_date=train_params['start_date'])
+
