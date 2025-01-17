@@ -19,6 +19,7 @@ class RollingDataset(Dataset):
         self.stride = stride
         self.num_classes = class_num
         self.data = self.data_loader.get_data(inst_id)
+        self.features_name = None
 
         if self.data.empty:
             raise ValueError(f"No data available for {inst_id}. Please check your DataLoader.")
@@ -49,8 +50,10 @@ class RollingDataset(Dataset):
         # Convert DataFrame to numpy arrays for faster indexing
         # 除去ts列，其余列作为特征
         try:
+            self.features_name = self.data.drop(['ts', 'future_returns', 'label', 'datetime'], axis=1).columns
             self.features = self.data.drop(['ts', 'future_returns', 'label', 'datetime'], axis=1).values
         except:
+            self.features_name = self.data.drop(['ts', 'future_returns', 'label'], axis=1).columns
             self.features = self.data.drop(['ts', 'future_returns', 'label'], axis=1).values
         self.labels = self.data['label'].values
 
