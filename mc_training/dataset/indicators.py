@@ -1234,6 +1234,8 @@ class Indicators:
             0
         )
 
+        df.drop('datetime', axis=1, inplace=True)
+
         return df
 
     def next_trend(self, df: pd.DataFrame, windows: int = 30) -> pd.DataFrame:
@@ -1333,4 +1335,3 @@ class Indicators:
         df.drop(columns=['tp', 'md'], inplace=True)
 
         return df
-

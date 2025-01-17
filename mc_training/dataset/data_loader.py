@@ -197,7 +197,8 @@ class MCDataLoader:
                   inst_id: str,
                   start_date: datetime = datetime(2000, 1, 1),
                   end_date: datetime = datetime(2099, 12, 31),
-                  add_indicators: bool = True):
+                  add_indicators: bool = True,
+                  add_delta: bool = True):
         """
         从 ClickHouse 加载数据
         Args:
@@ -212,6 +213,44 @@ class MCDataLoader:
 
         if add_indicators:
             self.add_indicators(inst_id)
+
+        if add_delta:
+            self.add_delta(inst_id)
+
+    def add_delta(self, inst_id: str, periods=None):
+        """
+        高效计算每个特征列与之前多个时间窗口的平均值的差值
+        Args:
+            inst_id: 交易对名称
+            periods: 计算差分的周期列表（如 [2, 5, 10, 20, 30]）
+        """
+        if inst_id not in self.data or self.data[inst_id].empty:
+            raise ValueError(f"No data available for {inst_id}. Please load data first.")
+
+        if periods is None:
+            periods = [2, 5, 10, 20, 30]
+
+        df = self.data[inst_id]
+
+        # 忽略时间戳列，只计算数值列的差值
+        numeric_columns = df.select_dtypes(include=[np.number]).columns.difference(['ts'])
+
+        # 使用 NumPy 和 Pandas 的矢量化计算批量处理
+        for period in periods:
+            # 滚动平均计算 (每个 period 一次性处理所有列)
+            rolling_mean = df[numeric_columns].rolling(window=period).mean()
+            delta = df[numeric_columns] - rolling_mean
+            delta.columns = [f"{col}_delta{period}" for col in numeric_columns]
+
+            # 合并到主 DataFrame
+            df = pd.concat([df, delta], axis=1)
+
+        # 删除包含 NaN 的行（由于 rolling 导致的缺失值）
+        df.dropna(inplace=True)
+
+        # 更新主数据结构
+        self.data[inst_id] = df
+        logger.info(f"Deltas added for {inst_id}. Total columns: {len(df.columns)}")
 
 
 if __name__ == '__main__':

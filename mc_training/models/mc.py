@@ -17,16 +17,16 @@ class MCModel(nn.Module):
         self.pfn = PerFeatureNormalization(method="min_max")
         # dense
         self.fc = nn.Sequential(
-            nn.Linear(64 * feature_num * window_size, 128),
+            nn.Linear(1 * feature_num * window_size, 128),
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.Linear(128, class_num)
         )
 
     def forward(self, x):
-        x = self.feb1(x)
-        x = self.feb2(x)
-        x = self.feb3(x)
+        # x = self.feb1(x)
+        # x = self.feb2(x)
+        # x = self.feb3(x)
         x = x.view(x.size(0), -1)
         x = self.fc(x)
 

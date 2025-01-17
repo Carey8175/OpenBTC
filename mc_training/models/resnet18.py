@@ -49,17 +49,17 @@ class ResNet18(nn.Module):
 
     def forward(self, x):
         # Normalize each sample independently
-        x = self.norm(x)
+        # x = self.norm(x)
 
         # Flatten input for the fully connected layer
         batch_size = x.size(0)
         x = x.view(batch_size, -1)  # Flatten to [batch_size, input_dim]
 
         # Fully connected layer
-        x = self.fc(x)
-
-        # Reshape to match ResNet input dimensions
-        x = x.view(batch_size, self.resnet_input_channels, self.resnet_input_height, self.resnet_input_width)
+        # x = self.fc(x)
+        #
+        # # Reshape to match ResNet input dimensions
+        # x = x.view(batch_size, self.resnet_input_channels, self.resnet_input_height, self.resnet_input_width)
 
         # Sort features based on importance
         # x, sorted_index = self.sort(x)
