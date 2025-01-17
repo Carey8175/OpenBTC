@@ -79,8 +79,6 @@ class RollingDataset(Dataset):
         # 添加单通道维度，确保形状为 [1, window_size, feature_dim]
         x = x.unsqueeze(0)
 
-
-
         return x, torch.tensor(y, dtype=torch.long)
 
 
