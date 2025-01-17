@@ -184,7 +184,7 @@ class MCDataLoader:
                 else:
                     df = func(df)  # 不需要 btc_df 的情况
             except Exception as e:
-                # print(f"Error applying {indicator}: {e}")
+                print(f"Error applying {indicator}: {e}")
                 pass
 
         # 删除包含 NaN 的行
