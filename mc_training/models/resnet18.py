@@ -37,7 +37,7 @@ class ResNet18(nn.Module):
         self.resnet_input_width = feature_num
 
         # Modified ResNet18
-        self.resnet = resnet50(num_classes=class_num)
+        self.resnet = resnet18(num_classes=class_num)
         self.resnet.conv1 = nn.Conv2d(
             in_channels=self.resnet_input_channels,  # Single channel
             out_channels=64,  # Matches original ResNet18
