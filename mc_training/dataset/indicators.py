@@ -1295,7 +1295,6 @@ class Indicators:
 
         return df
 
-
     def cci(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
         """
         计算商品通道指数 (CCI) 并优化滚动绝对偏差计算。
