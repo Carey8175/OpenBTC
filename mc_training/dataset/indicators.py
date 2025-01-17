@@ -1464,6 +1464,8 @@ class Indicators:
             0
         )
 
+        df.drop('datetime', axis=1, inplace=True)
+
         return df
 
     def btc_corr(self, df: pd.DataFrame, btc_df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
@@ -1538,48 +1540,48 @@ class Indicators:
 
         return df
 
-    def next_trend(df: pd.DataFrame, windows: int = 30) -> pd.DataFrame:
-        """
-        根据过去 `windows` 根 K 线数据，使用线性回归拟合并预测下一根 K 线的趋势值。
-
-        Args:
-            df (pd.DataFrame): 包含 K 线数据的 DataFrame，至少包括以下列：
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-            windows (int): 使用过去多少根 K 线数据拟合下一根 K 线。
-
-        Returns:
-            pd.DataFrame: 添加了 `next_trend` 列的数据框。
-        """
-        # 确保有足够的数据进行回归
-        if len(df) < windows:
-            raise ValueError("DataFrame 长度不足以进行回归计算")
-
-        # 初始化一个线性回归模型
-        model = LinearRegression()
-
-        # 为每一根 K 线计算过去 windows 的特征并预测未来趋势
-        trends = []
-        for i in range(windows, len(df)):
-            # 提取过去 windows 根 K 线的特征：开盘价、收盘价、最高价、最低价
-            X = np.arange(windows).reshape(-1, 1)  # 时间步，例如 [0, 1, ..., windows-1]
-            y = df['close'].iloc[i - windows:i].values.reshape(-1, 1)  # 收盘价序列
-
-            # 拟合线性回归模型
-            model.fit(X, y)
-
-            # 用拟合的模型预测下一时间步的值
-            next_close = model.predict([[windows]])[0, 0]  # 预测下一根 K 线的收盘价
-
-            # 计算趋势值：下一根收盘价相对当前收盘价的变化百分比
-            current_close = df['close'].iloc[i]
-            trend = (next_close - current_close) / current_close
-
-            trends.append(trend)
-
-        # 填充趋势数据到 DataFrame
-        df['next_trend'] = [np.nan] * windows + trends  # 前 windows 行没有趋势值，填充 NaN
-
-        return df
+    # def next_trend(df: pd.DataFrame, windows: int = 30) -> pd.DataFrame:
+    #     """
+    #     根据过去 `windows` 根 K 线数据，使用线性回归拟合并预测下一根 K 线的趋势值。
+    #
+    #     Args:
+    #         df (pd.DataFrame): 包含 K 线数据的 DataFrame，至少包括以下列：
+    #             - open: 开盘价
+    #             - high: 最高价
+    #             - low: 最低价
+    #             - close: 收盘价
+    #         windows (int): 使用过去多少根 K 线数据拟合下一根 K 线。
+    #
+    #     Returns:
+    #         pd.DataFrame: 添加了 `next_trend` 列的数据框。
+    #     """
+    #     # 确保有足够的数据进行回归
+    #     if len(df) < windows:
+    #         raise ValueError("DataFrame 长度不足以进行回归计算")
+    #
+    #     # 初始化一个线性回归模型
+    #     model = LinearRegression()
+    #
+    #     # 为每一根 K 线计算过去 windows 的特征并预测未来趋势
+    #     trends = []
+    #     for i in range(windows, len(df)):
+    #         # 提取过去 windows 根 K 线的特征：开盘价、收盘价、最高价、最低价
+    #         X = np.arange(windows).reshape(-1, 1)  # 时间步，例如 [0, 1, ..., windows-1]
+    #         y = df['close'].iloc[i - windows:i].values.reshape(-1, 1)  # 收盘价序列
+    #
+    #         # 拟合线性回归模型
+    #         model.fit(X, y)
+    #
+    #         # 用拟合的模型预测下一时间步的值
+    #         next_close = model.predict([[windows]])[0, 0]  # 预测下一根 K 线的收盘价
+    #
+    #         # 计算趋势值：下一根收盘价相对当前收盘价的变化百分比
+    #         current_close = df['close'].iloc[i]
+    #         trend = (next_close - current_close) / current_close
+    #
+    #         trends.append(trend)
+    #
+    #     # 填充趋势数据到 DataFrame
+    #     df['next_trend'] = [np.nan] * windows + trends  # 前 windows 行没有趋势值，填充 NaN
+    #
+    #     return df
