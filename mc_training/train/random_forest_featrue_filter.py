@@ -65,4 +65,5 @@ plt.barh(range(len(feature_importances)), feature_importances, tick_label=featur
 plt.title("Feature Importances")
 plt.xlabel("Importance")
 plt.ylabel("Features")
-plt.show()
+plt.savefig("feature_importances.png")
+print(feature_names[60:])
