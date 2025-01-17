@@ -391,76 +391,6 @@ class Indicators:
 
         return df
 
-    # def upper_shadow_exceeds_avg_multiple(self, df: pd.DataFrame, period: int = 20, multiple: int = 2) -> pd.DataFrame:
-    #     """
-    #     计算 Upper Shadow Exceeds Avg Multiple 指标
-    #     在时间窗口内，超过上影线均值两倍的次数
-    #     Args:
-    #         df: 数据框，包含以下列：
-    #             - ts: 时间戳
-    #             - open: 开盘价
-    #             - high: 最高价
-    #             - low: 最低价
-    #             - close: 收盘价
-    #             - vol: 交易量
-    #             - volCcy: 交易币量
-    #             - valCcyQuote: 计价货币的量
-    #         period: 计算 Upper Shadow Exceeds Avg Multiple 的周期
-    #         multiple: 上影线超过平均值的倍数
-    #
-    #     Returns:
-    #         pd.DataFrame: 包含 Upper Shadow Exceeds Avg Multiple 指标的数据框
-    #     """
-    #     if 'avg_high_shadow_length' not in df.columns:
-    #         df['high_shadow_length'] = abs(df['high'] - df[['open', 'close']].max(axis=1))
-    #         df['avg_high_shadow_length'] = df['high_shadow_length'].rolling(window=period).mean()
-    #
-    #     # 当前为均值的多少倍
-    #     df['upper_shadow_exceeds_avg_multiple'] = df['high_shadow_length'] / df['avg_high_shadow_length']
-    #
-    #     # 统计时间窗口内超过平均值两倍的次数
-    #     df['upper_shadow_exceeds_avg_multiple_20'] = df['upper_shadow_exceeds_avg_multiple'].rolling(
-    #         window=period).apply(
-    #         lambda x: len(x[x >= multiple])
-    #     )
-    #
-    #     return df
-
-    # def lower_shadow_exceeds_avg_multiple(self, df: pd.DataFrame, period: int = 20, multiple: int = 2) -> pd.DataFrame:
-    #     """
-    #     计算 Lower Shadow Exceeds Avg Multiple 指标
-    #     在时间窗口内，超过下影线���值两倍的次数
-    #     Args:
-    #         df: 数据框，包含以下列：
-    #             - ts: 时间戳
-    #             - open: 开盘价
-    #             - high: 最高价
-    #             - low: 最低价
-    #             - close: 收盘价
-    #             - vol: 交易量
-    #             - volCcy: 交易币量
-    #             - valCcyQuote: 计价货币的量
-    #         period: 计算 Lower Shadow Exceeds Avg Multiple 的周期
-    #         multiple: 下影线超过平均值的倍数
-    #
-    #     Returns:
-    #         pd.DataFrame: 包含 Lower Shadow Exceeds Avg Multiple 指标的数据框
-    #     """
-    #     if 'avg_low_shadow_length' not in df.columns:
-    #         df['low_shadow_length'] = abs(df['low'] - df[['open', 'close']].min(axis=1))
-    #         df['avg_low_shadow_length'] = df['low_shadow_length'].rolling(window=period).mean()
-    #
-    #     # 当前为均值的多少倍
-    #     df['lower_shadow_exceeds_avg_multiple'] = df['low_shadow_length'] / df['avg_low_shadow_length']
-    #
-    #     # 统计时间窗口内超过平均值两倍的次数
-    #     df['lower_shadow_exceeds_avg_multiple_20'] = df['lower_shadow_exceeds_avg_multiple'].rolling(
-    #         window=period).apply(
-    #         lambda x: len(x[x >= multiple])
-    #     )
-    #
-    #     return df
-
     def lower_shadow_to_candle_ratio(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         计算 Lower Shadow To Candle Ratio 指标
@@ -714,66 +644,6 @@ class Indicators:
 
         return df
 
-    # def support(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
-    #     """
-    #     支撑位 20 交易量softmax后的加权最低价
-    #     Args:
-    #         df: 数据框，包含以下列：
-    #             - ts: 时间戳
-    #             - open: 开盘价
-    #             - high: 最高价
-    #             - low: 最低价
-    #             - close: 收盘价
-    #             - vol: 交易量
-    #             - volCcy: 交易币量
-    #             - valCcyQuote: 计价货币的量
-    #         period: 计算支撑位的周期
-    #
-    #     Returns:
-    #         pd.DataFrame: 包含支撑位的数据框
-    #     """
-    #     # 计算Softmax后的交易量权重
-    #     def softmax(x):
-    #         e_x = np.exp(x - np.max(x))  # 防止溢出
-    #         return e_x / np.sum(e_x)  # 返回归一化后的值
-    #
-    #     # 使用rolling来计算每个窗口的加权最低价
-    #     df['support'] = df['vol'].rolling(window=period).apply(
-    #         lambda x: np.sum(softmax(np.array(x)) * df['low'].iloc[x.index]), raw=False
-    #     )
-    #
-    #     return df
-
-    # def resistance(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
-    #     """
-    #     阻力位 20 交易量softmax后的加权最高价
-    #     Args:
-    #         df: 数据框，包含以下列：
-    #             - ts: 时间戳
-    #             - open: 开盘价
-    #             - high: 最高价
-    #             - low: 最低价
-    #             - close: 收盘价
-    #             - vol: 交易量
-    #             - volCcy: 交易币量
-    #             - valCcyQuote: 计价货币的量
-    #         period: 计���阻力位的周期
-    #
-    #     Returns:
-    #         pd.DataFrame: 包含阻力位的数据框
-    #     """
-    #     # 计算Softmax后的交易量权重
-    #     def softmax(x):
-    #         e_x = np.exp(x - np.max(x))
-    #         return e_x / np.sum(e_x)
-    #
-    #     # 使用rolling来计算每个窗口的加权最高价
-    #     df['resistance'] = df['vol'].rolling(window=period).apply(
-    #         lambda x: np.sum(softmax(np.array(x)) * df['high'].iloc[x.index]), raw=False
-    #     )
-    #
-    #     return df
-
     def bollinger_band_expansion_ratio(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
         """
         计算 Bollinger Band Expansion Ratio 指标
@@ -811,106 +681,6 @@ class Indicators:
         df['bollinger_band_expansion_ratio'] = df['bollinger_band_width'] / df['middle_band']
 
         return df
-
-    # def three_consecutive_up_candles_ratio(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
-    #     """
-    #     计算 Three Consecutive Up Candles Ratio 指标
-    #     大于三连阳比率
-    #     连续三根阳线的比率
-    #     Args:
-    #         df: 数据框，包含以下列：
-    #             - ts: 时间戳
-    #             - open: 开盘价
-    #             - high: 最高价
-    #             - low: 最低价
-    #             - close: 收盘价
-    #             - vol: 交易量
-    #             - volCcy: 交易币量
-    #             - valCcyQuote: 计价货币的量
-    #         period: 计算 Three Consecutive Up Candles Ratio 的周期
-    #
-    #     Returns:
-    #         pd.DataFrame: 包含 Three Consecutive Up Candles Ratio 指标的数据框
-    #     """
-    #     df['up'] = df['close'] > df['open']
-    #
-    #     # 计算连续3根及以上阳线的比率
-    #     def consecutive_down_candles_ratio(x):
-    #         x = x.values  # 转换为numpy数组
-    #         total_candles = 0  # 构成连续3根及以上阳线的K线总数
-    #         consecutive = 0  # 当前连续阳线计数
-    #         temp_count = 0  # 临时计数，用于累积可能构成连续阳线的数量
-    #
-    #         for i in range(len(x)):
-    #             if x[i] == True:
-    #                 consecutive += 1
-    #                 temp_count += 1
-    #             else:
-    #                 if consecutive >= 3:  # 如果之前累积了3根及以上
-    #                     total_candles += temp_count  # 将所有连续的K线都计入
-    #                 consecutive = 0
-    #                 temp_count = 0
-    #
-    #         # 处理最后一组（如果以连续阴线结尾）
-    #         if consecutive >= 3:
-    #             total_candles += temp_count
-    #
-    #         return total_candles / len(x)  # 返回占比
-    #
-    #     df['three_consecutive_up_candles_ratio'] = df['up'].rolling(window=period).apply(
-    #         consecutive_down_candles_ratio, raw=False)
-    #
-    #     return df
-    #
-    # def three_consecutive_down_candles_ratio(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
-    #     """
-    #     计算 Three Consecutive Down Candles Ratio 指标
-    #     大于三连阴比率
-    #     连续三根阴线的比率
-    #     Args:
-    #         df: 数据框，包含以下列：
-    #             - ts: 时间戳
-    #             - open: 开盘价
-    #             - high: 最高价
-    #             - low: 最低价
-    #             - close: 收盘价
-    #             - vol: 交易量
-    #             - volCcy: 交易币量
-    #             - valCcyQuote: 计价货币的量
-    #         period: 计算 Three Consecutive Down Candles Ratio 的周期
-    #
-    #     Returns:
-    #         pd.DataFrame: 包含 Three Consecutive Down Candles Ratio 指标的数据框
-    #     """
-    #     df['down'] = df['close'] < df['open']
-    #
-    #     # 计算连续3根及以上阴线的比率
-    #     def consecutive_down_candles_ratio(x):
-    #         x = x.values  # 转换为numpy数组
-    #         total_candles = 0  # 构成连续3根及以上阴线的K线总数
-    #         consecutive = 0  # 当前连续阴线计数
-    #         temp_count = 0  # 临时计数，用于累积可能构成连续阴线的数量
-    #
-    #         for i in range(len(x)):
-    #             if x[i] == True:
-    #                 consecutive += 1
-    #                 temp_count += 1
-    #             else:
-    #                 if consecutive >= 3:  # 如果之前累积了3根及以上
-    #                     total_candles += temp_count  # 将所有连续的K线都计入
-    #                 consecutive = 0
-    #                 temp_count = 0
-    #
-    #         # 处理最后一组（如果以连续阴线结尾）
-    #         if consecutive >= 3:
-    #             total_candles += temp_count
-    #
-    #         return total_candles / len(x)  # 返回占比
-    #
-    #     df['three_consecutive_down_candles_ratio'] = df['down'].rolling(window=period).apply(
-    #         consecutive_down_candles_ratio, raw=False)
-    #
-    #     return df
 
     def gap_percentage(self, df: pd.DataFrame, period=20) -> pd.DataFrame:
         """
@@ -1468,120 +1238,100 @@ class Indicators:
 
         return df
 
-    def btc_corr(self, df: pd.DataFrame, btc_df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
+    def next_trend(self, df: pd.DataFrame, windows: int = 30) -> pd.DataFrame:
         """
-        计算 BTC Corr 指标
-        比特币相关性
-        与比特币的相关性
-        BTC Corr = corr(close, btc_close)
-        20日比特币相关性
-        20日BTC Corr = corr(close, btc_close)
+        根据过去 `windows` 根 K 线数据，使用线性回归拟合并预测下一根 K 线的趋势值（优化版）。
+
         Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
+            df (pd.DataFrame): 包含 K 线数据的 DataFrame，至少包括以下列：
                 - open: 开盘价
                 - high: 最高价
                 - low: 最低价
                 - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            btc_df: 比特币数据框，包含以下列：
-                - ts: 时间戳
-                - close: 收盘价
-            period: 计算 BTC Corr 的周期
+            windows (int): 使用过去多少根 K 线数据拟合下一根 K 线。
 
         Returns:
-            pd.DataFrame: 包含 BTC Corr 指标的数据框
+            pd.DataFrame: 添加了 `next_trend` 列的数据框。
         """
-        # 合并 df 和 btc_df，确保它们在同一个 DataFrame 中
-        merged_df = pd.merge(df[['ts', 'close']], btc_df[['ts', 'close']], on='ts', suffixes=('', '_btc'))
+        if len(df) < windows:
+            raise ValueError("DataFrame 长度不足以进行回归计算")
 
-        # 计算 BTC Corr
-        merged_df['btc_corr'] = merged_df['close'].rolling(window=period).corr(merged_df['close_btc'])
-        merged_df.drop(['close', 'close_btc'], axis=1, inplace=True)
+        # 时间步矩阵 (固定不变)
+        X = np.arange(windows).reshape(-1, 1)
+        X_mean = X.mean()
+        X_centered = X - X_mean
+        X_norm = np.sum(X_centered ** 2)
 
-        # 将结果返回到原始 df, 确保ts相同
-        df = pd.merge(df, merged_df[['ts', 'btc_corr']], on='ts', how='left')
+        # 初始化趋势值列表
+        trends = []
+
+        # 提取收盘价序列
+        close_prices = df['close'].values
+
+        # 预计算窗口内的均值，避免重复计算
+        rolling_mean = pd.Series(close_prices).rolling(window=windows).mean().values
+
+        for i in range(windows, len(close_prices)):
+            # 提取当前窗口的收盘价
+            y = close_prices[i - windows:i]
+            y_mean = rolling_mean[i - 1]  # 当前窗口内的均值
+
+            # 中心化 y
+            y_centered = y - y_mean
+
+            # 计算斜率和截距
+            slope = np.sum(X_centered.flatten() * y_centered) / X_norm
+            intercept = y_mean - slope * X_mean
+
+            # 预测下一时间步的值
+            next_close = slope * windows + intercept
+
+            # 计算趋势值
+            current_close = close_prices[i]
+            trend = (next_close - current_close) / current_close
+
+            trends.append(trend)
+
+        # 填充趋势数据到 DataFrame
+        df['next_trend'] = [np.nan] * windows + trends  # 前 windows 行没有趋势值，填充 NaN
 
         return df
 
-    def btc_price_change(self, df: pd.DataFrame, btc_df: pd.DataFrame) -> pd.DataFrame:
+    def cci(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
         """
-        计算 BTC Price Change 指标
-        比特币价格变化
-        与比特币的价格变化
-        BTC Price Change = (close - close.shift(1)) / close.shift(1)
-        20日比特币价格变化
-        20日BTC Price Change = (close - close.shift(1)) / close.shift(1)
+        计算商品通道指数 (CCI) 并优化滚动绝对偏差计算。
         Args:
             df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
                 - high: 最高价
                 - low: 最低价
                 - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            btc_df: 比特币数据框，包含以下列：
-                - ts: 时间戳
-                - close: 收盘价
-            period: 计算 BTC Price Change 的周期
+            period: 计算 CCI 的周期
 
         Returns:
-            pd.DataFrame: 包含 BTC Price Change 指标的数据框
+            pd.DataFrame: 包含 CCI 指标的数据框
         """
-        # 确保ts相同
-        df = pd.merge(df, btc_df[['ts', 'close']], on='ts', how='left', suffixes=('', '_btc'))
+        # 计算典型价格
+        df['tp'] = (df['high'] + df['low'] + df['close']) / 3
 
-        # 计算 BTC Price Change
-        df['btc_price_change'] = (df['close_btc'] - df['close_btc'].shift(1)) / df['close_btc'].shift(1)
+        # 计算滚动均值（典型价格的均值）
+        rolling_mean = df['tp'].rolling(window=period).mean()
+
+        # 使用 NumPy 向量化计算滚动绝对偏差
+        tp_array = df['tp'].values
+        rolling_mean_array = rolling_mean.values
+
+        # 计算滚动绝对偏差
+        abs_diff = np.abs(tp_array - rolling_mean_array)
+        rolling_md = np.convolve(abs_diff, np.ones(period) / period, mode='valid')
+
+        # 填充滚动绝对偏差到原始 DataFrame
+        df['md'] = np.nan
+        df.loc[period - 1: len(rolling_md) + period - 2, 'md'] = rolling_md
+
+        # 计算 CCI 指标
+        df['cci'] = (df['tp'] - rolling_mean) / (0.015 * df['md'])
+
+        # 删除中间变量
+        df.drop(columns=['tp', 'md'], inplace=True)
 
         return df
-
-    # def next_trend(df: pd.DataFrame, windows: int = 30) -> pd.DataFrame:
-    #     """
-    #     根据过去 `windows` 根 K 线数据，使用线性回归拟合并预测下一根 K 线的趋势值。
-    #
-    #     Args:
-    #         df (pd.DataFrame): 包含 K 线数据的 DataFrame，至少包括以下列：
-    #             - open: 开盘价
-    #             - high: 最高价
-    #             - low: 最低价
-    #             - close: 收盘价
-    #         windows (int): 使用过去多少根 K 线数据拟合下一根 K 线。
-    #
-    #     Returns:
-    #         pd.DataFrame: 添加了 `next_trend` 列的数据框。
-    #     """
-    #     # 确保有足够的数据进行回归
-    #     if len(df) < windows:
-    #         raise ValueError("DataFrame 长度不足以进行回归计算")
-    #
-    #     # 初始化一个线性回归模型
-    #     model = LinearRegression()
-    #
-    #     # 为每一根 K 线计算过去 windows 的特征并预测未来趋势
-    #     trends = []
-    #     for i in range(windows, len(df)):
-    #         # 提取过去 windows 根 K 线的特征：开盘价、收盘价、最高价、最低价
-    #         X = np.arange(windows).reshape(-1, 1)  # 时间步，例如 [0, 1, ..., windows-1]
-    #         y = df['close'].iloc[i - windows:i].values.reshape(-1, 1)  # 收盘价序列
-    #
-    #         # 拟合线性回归模型
-    #         model.fit(X, y)
-    #
-    #         # 用拟合的模型预测下一时间步的值
-    #         next_close = model.predict([[windows]])[0, 0]  # 预测下一根 K 线的收盘价
-    #
-    #         # 计算趋势值：下一根收盘价相对当前收盘价的变化百分比
-    #         current_close = df['close'].iloc[i]
-    #         trend = (next_close - current_close) / current_close
-    #
-    #         trends.append(trend)
-    #
-    #     # 填充趋势数据到 DataFrame
-    #     df['next_trend'] = [np.nan] * windows + trends  # 前 windows 行没有趋势值，填充 NaN
-    #
-    #     return df
