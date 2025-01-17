@@ -67,10 +67,24 @@ class RollingRFTrainer:
         单个训练阶段。
         """
         # 初始化随机森林模型
-        model = RandomForestClassifier(n_estimators=100, random_state=self.random_state, class_weight='balanced')
+        model = RandomForestClassifier(n_estimators=100,
+                                       random_state=self.random_state,
+                                       class_weight='balanced',
+                                       max_depth=6)
 
         # 训练模型
         model.fit(train_features, train_labels)
+
+        # 验证训练集指标
+        train_predictions = model.predict(train_features)
+        train_accuracy = accuracy_score(train_labels, train_predictions)
+        train_precision, train_recall, train_f1, _ = precision_recall_fscore_support(train_labels, train_predictions, average='macro')
+        train_classification_report_str = classification_report(train_labels, train_predictions)
+        logger.info(f"======================= train ===========================")
+        logger.info(f"Train Accuracy: {train_accuracy:.4f}")
+        logger.info(f"Train Precision: {train_precision:.4f}, Recall: {train_recall:.4f}, F1-Score: {train_f1:.4f}")
+        logger.info(f"Train Classification Report:\n{train_classification_report_str}")
+
 
         # 预测验证集
         val_predictions = model.predict(val_features)
@@ -81,6 +95,7 @@ class RollingRFTrainer:
         classification_report_str = classification_report(val_labels, val_predictions)
 
         # Log metrics
+        logger.info(f"======================= validation ===========================")
         logger.info(f"Validation Accuracy: {accuracy:.4f}")
         logger.info(f"Precision: {precision:.4f}, Recall: {recall:.4f}, F1-Score: {f1:.4f}")
         logger.info(f"Classification Report:\n{classification_report_str}")
