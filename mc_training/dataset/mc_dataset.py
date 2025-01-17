@@ -47,15 +47,15 @@ class RollingDataset(Dataset):
         # Drop rows with NaN values (e.g., due to shift or pct_change)
         self.data.dropna(inplace=True)
 
-        # Convert DataFrame to numpy arrays for faster indexing
-        # 除去ts列，其余列作为特征
-        try:
-            self.features_name = self.data.drop(['ts', 'future_returns', 'label', 'datetime'], axis=1).columns
-            self.features = self.data.drop(['ts', 'future_returns', 'label', 'datetime'], axis=1).values
-        except:
-            self.features_name = self.data.drop(['ts', 'future_returns', 'label'], axis=1).columns
-            self.features = self.data.drop(['ts', 'future_returns', 'label'], axis=1).values
         self.labels = self.data['label'].values
+        # Convert DataFrame to numpy arrays for faster indexing
+        # 如果有'ts', 'future_returns', 'label', 'datetime' 列，除去这些列，其余列作为特征
+        for key in ['ts', 'future_returns', 'label', 'datetime']:
+            if key in self.data.columns:
+                self.data.drop(key, axis=1, inplace=True)
+
+        self.features_name = self.data.columns
+        self.features = self.data.values
 
     def __len__(self):
         """
