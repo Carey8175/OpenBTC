@@ -6,6 +6,7 @@ from collections import Counter
 from datetime import datetime
 from loguru import logger
 from torch.utils.data import DataLoader, Subset
+import matplotlib.pyplot as plt
 
 class RollingRFTrainer:
     def __init__(self, dataset, unit_size=100, stride_day=50, train_ratio=0.8, random_state=42):
@@ -100,6 +101,22 @@ class RollingRFTrainer:
         logger.info(f"Precision: {precision:.4f}, Recall: {recall:.4f}, F1-Score: {f1:.4f}")
         logger.info(f"Classification Report:\n{classification_report_str}")
 
+
+        feature_importances = model.feature_importances_
+        feature_names = dataset.features_name  # Use original feature names
+
+        # sort the features by importance
+        sorted_idx = np.argsort(feature_importances)
+        feature_importances = feature_importances[sorted_idx]
+        feature_names = feature_names[sorted_idx]
+
+        plt.figure(figsize=(12, 48))
+        plt.barh(range(len(feature_importances)), feature_importances, tick_label=feature_names)
+        plt.title("Feature Importances")
+        plt.xlabel("Importance")
+        plt.ylabel("Features")
+        plt.savefig("feature_importances.png")
+
         return model, accuracy, precision, recall, f1
 
     def rolling_train(self, total_days, start_date):
@@ -141,6 +158,13 @@ class RollingRFTrainer:
         # 计算平均指标
         avg_metrics = np.mean(metrics_list, axis=0)
         logger.info(f"Average Metrics - Accuracy: {avg_metrics[0]:.4f}, Precision: {avg_metrics[1]:.4f}, Recall: {avg_metrics[2]:.4f}, F1: {avg_metrics[3]:.4f}")
+        # best info
+        best_one = max(metrics_list, key=lambda x: x[3])
+        logger.info(f"Best - Accuracy: {best_one[0]:.4f}, Precision: {best_one[1]:.4f}, Recall: {best_one[2]:.4f}, F1: {best_one[3]:.4f}")
+        # worst one
+        worst_one = min(metrics_list, key=lambda x: x[3])
+        logger.info(f"Worst - Accuracy: {worst_one[0]:.4f}, Precision: {worst_one[1]:.4f}, Recall: {worst_one[2]:.4f}, F1: {worst_one[3]:.4f}")
+
 
         return best_model, avg_metrics
 
@@ -160,10 +184,12 @@ if __name__ == '__main__':
     from mc_training.dataset.data_loader import MCDataLoader
 
     dl = MCDataLoader()
-    dl.load_data('BTC-USDT-SWAP', datetime(2024, 1, 2), datetime(2025, 1, 4))
-    dataset = RollingDataset(dl, inst_id="BTC-USDT-SWAP", window_size=30, stride=15, class_num=2)
+    dl.load_data('BTC-USDT-SWAP', datetime(2024, 1, 2), datetime(2025, 1, 4),
+                 add_delta=False,
+                 add_indicators=True)
+    dataset = RollingDataset(dl, inst_id="BTC-USDT-SWAP", window_size=20, stride=5, class_num=2)
 
-    trainer = RollingRFTrainer(dataset, unit_size=100, stride_day=50, train_ratio=0.8)
+    trainer = RollingRFTrainer(dataset, unit_size=50, stride_day=50, train_ratio=0.8)
     trainer.set_random_seed(42)
 
     best_model, avg_metrics = trainer.rolling_train(total_days=360, start_date=datetime(2024, 1, 2))
