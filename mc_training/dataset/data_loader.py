@@ -57,7 +57,7 @@ class MCDataLoader:
         end_ts = int(end_date.timestamp() * 1000)
 
         query = f"""
-        SELECT ts, open, high, low, close, vol
+        SELECT *
         FROM candles
         WHERE inst_id = '{inst_id}' 
         AND ts >= {start_ts} 
@@ -257,7 +257,7 @@ if __name__ == '__main__':
     dl = MCDataLoader()
     # Load data for BTC-USDT-SWAP from database
     time1 = time.time()
-    dl.load_data('BTC-USDT-SWAP', datetime(2024, 1, 2), datetime(2025, 1, 4))
+    dl.load_data('BTC-USDT-SWAP', datetime(2024, 11, 24), datetime(2025, 1, 22))
     # dl.add_indicators('BTC-USDT-SWAP')
     print(f"Time taken: {time.time() - time1:.2f}s")
 
