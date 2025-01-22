@@ -58,7 +58,7 @@ class MCDataLoader:
 
         query = f"""
         SELECT ts, open, high, low, close, vol
-        FROM mc.candles
+        FROM candles
         WHERE inst_id = '{inst_id}' 
         AND ts >= {start_ts} 
         AND ts < {end_ts}
