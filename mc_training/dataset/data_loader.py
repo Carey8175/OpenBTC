@@ -57,7 +57,7 @@ class MCDataLoader:
         end_ts = int(end_date.timestamp() * 1000)
 
         query = f"""
-        SELECT *
+        SELECT ts, open, high, low, close, vol, taker_sell, taker_buy, open_interest, elite_long_short_ratio, elite_position_long_short_ratio, all_long_short_ratio
         FROM candles
         WHERE inst_id = '{inst_id}' 
         AND ts >= {start_ts} 
