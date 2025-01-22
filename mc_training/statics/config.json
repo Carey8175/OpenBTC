@@ -3,7 +3,7 @@
         "host": "47.236.8.43",
         "user": "default",
         "password": "123456",
-        "database": "mc",
+        "database": "mc_1H",
         "port": 9000
     }
 }
