@@ -4,7 +4,25 @@ from sklearn.linear_model import LinearRegression
 
 
 class Indicators:
-    def rsi(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
+    def ret(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        计算 收益率
+        """
+        # 计算价格变化
+        df['ret'] = df['close'].pct_change()
+        return df
+    def avg_ret(self, df: pd.DataFrame, period_list: list = [3,5,10,20]) -> pd.DataFrame:
+        """
+        计算 收益率
+        """
+        # 计算价格变化
+        for period in period_list:
+            df[f'avg_ret_{period}'] = (df['close']/df['close'].shift(1)-1).rolling(window=period).mean()
+
+        return df
+
+
+    def rsi(self, df: pd.DataFrame, period: int = 14) -> pd.DataFrame:
         """
         计算 RSI 指标
         Args:
@@ -40,7 +58,7 @@ class Indicators:
 
         return df
 
-    def macd(self, df: pd.DataFrame, fast_period: int = 10, slow_period: int = 30, signal_period: int = 20) -> pd.DataFrame:
+    def macd(self, df: pd.DataFrame, fast_period: int = 12, slow_period: int = 26, signal_period: int = 9) -> pd.DataFrame:
         """
         计算 MACD 指标
         Args:
@@ -64,14 +82,25 @@ class Indicators:
         df[f'ema_{fast_period}'] = df['close'].ewm(span=fast_period).mean()
         # 计算慢线
         df[f'ema_{slow_period}'] = df['close'].ewm(span=slow_period).mean()
-        # 计算 MACD
+        # 计算 MACD(柱状图)
         df['macd'] = df[f'ema_{fast_period}'] - df[f'ema_{slow_period}']
         # 计算信号线
         df['signal'] = df['macd'].ewm(span=signal_period).mean()
         # 计算 MACD 柱状图
         df['histogram'] = df['macd'] - df['signal']
 
+        # MACD衍生
+        close_max2min = df['close'].rolling(window=30).max()-df['close'].rolling(window=30).min()
+        histogram_max2min = df['histogram'].rolling(window=30).max()-df['histogram'].rolling(window=30).min()
+        period_list = [3,5,10]
+        for p in period_list:
+            close_degree = (df['close']-df['close'].shift(p))/close_max2min
+            histogram_degree = (df['histogram'] - df['histogram'].shift(p)) / histogram_max2min
+            df[f'macd_dev_degree_{p}'] = close_degree - histogram_degree
+
         return df
+
+
 
     def mfi(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
         """
@@ -118,69 +147,8 @@ class Indicators:
 
         return df
 
-    def dea(self, df: pd.DataFrame, short_period: int = 10, long_period: int = 30, mid_period: int = 20) -> pd.DataFrame:
-        """
-        计算 DEA 指标
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            short_period: 短周期
-            long_period: 长周期
-            mid_period: 中周期
 
-        Returns:
-            pd.DataFrame: 包含 DEA 指标的数据框
-        """
-        tmp_df = pd.DataFrame()
-        # 计算快线
-        tmp_df[f'ema_{short_period}'] = df['close'].ewm(span=short_period).mean()
-        # 计算慢线
-        tmp_df[f'ema_{long_period}'] = df['close'].ewm(span=long_period).mean()
-        # 计算 MACD
-        tmp_df['macd'] = tmp_df[f'ema_{short_period}'] - tmp_df[f'ema_{long_period}']
-        # 计算信号线
-        df['dea'] = tmp_df['macd'].ewm(span=mid_period).mean()
-
-        return df
-
-    def dif(self, df: pd.DataFrame, short_period: int = 10, long_period: int = 30) -> pd.DataFrame:
-        """
-        计算 DIF 指标
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            short_period: 短周期
-            long_period: 长周期
-
-        Returns:
-            pd.DataFrame: 包含 DIF 指标的数据框
-        """
-        tmp_df = pd.DataFrame()
-
-        # 计算快线
-        tmp_df[f'ema_{short_period}'] = df['close'].ewm(span=short_period).mean()
-        # 计算慢线
-        tmp_df[f'ema_{long_period}'] = df['close'].ewm(span=long_period).mean()
-        # 计算 DIF
-        df['dif'] = tmp_df[f'ema_{short_period}'] - tmp_df[f'ema_{long_period}']
-
-        return df
-
-    def psy(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
+    def psy(self, df: pd.DataFrame, period_list: list = [3,5,10,20]) -> pd.DataFrame:
         """
         计算 PSY 指标
         Args:
@@ -205,11 +173,12 @@ class Indicators:
         # 计算正数价格变化
         tmp_df['gain'] = (tmp_df['delta'] > 0).astype(int)
         # 计算 PSY
-        df['psy'] = tmp_df['gain'].rolling(window=period).sum() / period * 100
+        for period in period_list:
+            df[f'psy_{period}'] = tmp_df['gain'].rolling(window=period).sum() / period * 100
 
         return df
 
-    def bias(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
+    def bias(self, df: pd.DataFrame, period_list: list = [3,5,10,20]) -> pd.DataFrame:
         """
         计算 BIAS 指标
         Args:
@@ -230,33 +199,13 @@ class Indicators:
         tmp_df = pd.DataFrame()
 
         # 计算均线
-        tmp_df['ma'] = df['close'].rolling(window=period).mean()
-        # 计算 BIAS
-        df['bias'] = (df['close'] - tmp_df['ma']) / tmp_df['ma'] * 100
+        for period in period_list:
+            tmp_df[f'ma_{period}'] = df['close'].rolling(window=period).mean()
+            # 计算 BIAS
+            df[f'bias_{period}'] = (df['close'] - tmp_df[f'ma_{period}']) / tmp_df[f'ma_{period}'] * 100
 
         return df
 
-    def sma(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
-        """
-        计算 SMA 指标
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            period: 计算 SMA 的周期
-
-        Returns:
-            pd.DataFrame: 包含 SMA 指标的数据框
-        """
-        df['sma'] = df['close'].rolling(window=period).mean()
-
-        return df
 
     def tp(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -279,7 +228,7 @@ class Indicators:
 
         return df
 
-    def tp_max(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
+    def tp_max(self, df: pd.DataFrame, period_list: list = [3,5,10,20]) -> pd.DataFrame:
         """
         计算 TP_MAX 指标
         Args:
@@ -297,11 +246,13 @@ class Indicators:
         Returns:
             pd.DataFrame: 包含 TP_MAX 指标的数据框
         """
-        df['tp_max'] = df['tp'].rolling(window=period).max()
+        for period in period_list:
+            df[f'tp_max_{period}'] = df['tp'].rolling(window=period).max()
+            df[f'tp_max_gap_{period}'] = (df['close']-df[f'tp_max_{period}'])/df[f'tp_max_{period}']
 
         return df
 
-    def tp_min(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
+    def tp_min(self, df: pd.DataFrame, period_list: list = [3,5,10,20]) -> pd.DataFrame:
         """
         计算 TP_MIN 指标
         Args:
@@ -319,11 +270,13 @@ class Indicators:
         Returns:
             pd.DataFrame: 包含 TP_MIN 指标的数据框
         """
-        df['tp_min'] = df['tp'].rolling(window=period).min()
+        for period in period_list:
+            df[f'tp_min_{period}'] = df['tp'].rolling(window=period).min()
+            df[f'tp_min_gap_{period}'] = (df['close'] - df[f'tp_min_{period}']) / df[f'tp_min_{period}']
 
         return df
 
-    def skewness(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
+    def skewness(self, df: pd.DataFrame, period_list: list = [10,20,30]) -> pd.DataFrame:
         """
         计算 Skewness 指标
         Args:
@@ -341,11 +294,11 @@ class Indicators:
         Returns:
             pd.DataFrame: 包含 Skewness 指标的数据框
         """
-        df['skewness'] = df['close'].rolling(window=period).skew()
-
+        for period in period_list:
+            df[f'skewness_{period}'] = df['close'].pct_change().rolling(window=period).skew()
         return df
 
-    def avg_low_shadow_length(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
+    def avg_low_shadow_length(self, df: pd.DataFrame,  period_list: list = [3,5,10]) -> pd.DataFrame:
         """
         计算 Avg Low Shadow Length 指标
         Args:
@@ -363,12 +316,13 @@ class Indicators:
         Returns:
             pd.DataFrame: 包含 Avg Low Shadow Length 指标的数据框
         """
-        df['low_shadow_length'] = abs(df['low'] - df[['open', 'close']].min(axis=1))
-        df['avg_low_shadow_length'] = df['low_shadow_length'].rolling(window=period).mean()
+        df['low_shadow_length'] = abs(df['low'] - df[['open', 'close']].min(axis=1))/df[['open', 'close']].min(axis=1)
+        for period in  period_list:
+            df[f'avg_low_shadow_length_{period}'] = df['low_shadow_length'].rolling(window=period).mean()
 
         return df
 
-    def avg_high_shadow_length(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
+    def avg_high_shadow_length(self, df: pd.DataFrame,  period_list: list = [3,5,10]) -> pd.DataFrame:
         """
         计算 Avg High Shadow Length 指标
         Args:
@@ -386,73 +340,14 @@ class Indicators:
         Returns:
             pd.DataFrame: 包含 Avg High Shadow Length 指标的数据框
         """
-        df['high_shadow_length'] = abs(df['high'] - df[['open', 'close']].max(axis=1))
-        df['avg_high_shadow_length'] = df['high_shadow_length'].rolling(window=period).mean()
-
-        return df
-
-    def lower_shadow_to_candle_ratio(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        计算 Lower Shadow To Candle Ratio 指标
-        下影线与蜡烛实体的比率
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-
-        Returns:
-            pd.DataFrame: 包含 Lower Shadow To Candle Ratio 指标的数据框
-        """
-        if 'low_shadow_length' not in df.columns:
-            df['low_shadow_length'] = abs(df['low'] - df[['open', 'close']].min(axis=1))
-
-        # 计算蜡烛实体长度
-        df['candle_body_length'] = df['high'] - df['low']
-
-        # 防止分母为 0 的情况，如果蜡烛实体为 0，则下影线比率为 0
-        df['lower_shadow_to_candle_ratio'] = df['low_shadow_length'] / df['candle_body_length']
-        df.loc[df['candle_body_length'] == 0, 'lower_shadow_to_candle_ratio'] = 0
-
-        return df
-
-    def upper_shadow_to_candle_ratio(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        计算 Upper Shadow To Candle Ratio 指标
-        上影线与蜡烛实体的比率
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-
-        Returns:
-            pd.DataFrame: 包含 Upper Shadow To Candle Ratio 指标的数据框
-        """
-        if 'high_shadow_length' not in df.columns:
-            df['high_shadow_length'] = abs(df['high'] - df[['open', 'close']].max(axis=1))
-
-        # 计算蜡烛实体长度
-        df['candle_body_length'] = df['high'] - df['low']
-
-        # 防止分母为 0 的情况，如果蜡烛实体为 0，则下影线比率为 0
-        df['upper_shadow_to_candle_ratio'] = df['high_shadow_length'] / df['candle_body_length']
-        df.loc[df['candle_body_length'] == 0, 'upper_shadow_to_candle_ratio'] = 0
+        df['high_shadow_length'] = abs(df['high'] - df[['open', 'close']].max(axis=1))/ df[['open', 'close']].max(axis=1)
+        for period in period_list:
+            df[f'avg_high_shadow_length_{period}'] = df['high_shadow_length'].rolling(window=period).mean()
 
         return df
 
 
-    def avg_body_length(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
+    def avg_body_length20(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
         """
         计算 Avg Candle Length 指标
         平均蜡烛长度
@@ -502,53 +397,7 @@ class Indicators:
 
         return df
 
-    def avg_high(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
-        """
-        计算 Avg High 指标
-        平均最高价
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            period: 计算 Avg High 的周期
-
-        Returns:
-            pd.DataFrame: 包含 Avg High 指标的数据框
-        """
-        df['avg_high'] = df['high'].rolling(window=period).mean()
-
-        return df
-
-    def avg_low(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
-        """
-        计算 Avg Low 指标
-        平均最低价
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            period: 计算 Avg Low 的周期
-
-        Returns:
-            pd.DataFrame: 包含 Avg Low 指标的数据框
-        """
-        df['avg_low'] = df['low'].rolling(window=period).mean()
-
-        return df
-
-    def slope_close(self, df: pd.DataFrame, period: int = 30) -> pd.DataFrame:
+    def slope_close(self, df: pd.DataFrame, period_list: list=[5,10,20]) -> pd.DataFrame:
         """
         计算 Slope Close 指标
         收盘价的斜率
@@ -567,7 +416,8 @@ class Indicators:
         Returns:
             pd.DataFrame: 包��� Slope Close 指标的数据框
         """
-        df[f'slope_close_{period}'] = df['close'].diff(period) / period
+        for period in period_list:
+            df[f'slope_close_{period}'] = df['close'].diff(period) / period
 
         return df
 
@@ -598,7 +448,7 @@ class Indicators:
         )
 
         return df
-    def momentum(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
+    def momentum(self, df: pd.DataFrame, period_list: list=[3,5,10,20]) -> pd.DataFrame:
         """
         计算 Momentum 指标
         动量指标
@@ -618,31 +468,11 @@ class Indicators:
         Returns:
             pd.DataFrame: 包含 Momentum 指标的数据框
         """
-        df[f'momentum_{period}'] = df['close'] - df['close'].shift(period)
+        for period in period_list:
+            df[f'momentum_{period}'] = df['close'].pct_change().rolling(window=period).mean()
 
         return df
 
-    def ln_price(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        计算 Ln Price 指标
-        收盘价的自然对数
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-
-        Returns:
-            pd.DataFrame: 包含 Ln Price 指标的数据框
-        """
-        df['ln_price'] = np.log(df['close'])
-
-        return df
 
     def bollinger_band_expansion_ratio(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
         """
@@ -680,11 +510,16 @@ class Indicators:
         # 计算布林带扩张比率
         df['bollinger_band_expansion_ratio'] = df['bollinger_band_width'] / df['middle_band']
 
+        # 布林带衍生
+        df['upper_band_gap'] = (df['close']-df['upper_band'])/df['bollinger_band_width']
+        df['lower_band_gap'] = (df['close']-df['lower_band'])/df['bollinger_band_width']
+
+
         return df
 
-    def gap_percentage(self, df: pd.DataFrame, period=20) -> pd.DataFrame:
+    def jump_percentage(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        计算 Gap Percentage 指标
+        计算 jump Percentage 指标
         缺口百分比
         今日开盘价与昨日收盘价的差值除以昨日收盘价的绝对值
         Args:
@@ -702,154 +537,26 @@ class Indicators:
         Returns:
             pd.DataFrame: 包含 Gap Percentage 指标的数据框
         """
-        df['gap_percentage'] = (df['open'] - df['close'].shift(period)) / df['close'].shift(period)
+        df['jump_percentage'] = (df['open'] - df['close'].shift(1)) / df['close'].shift(1)
 
         return df
 
     # 波动指数 --------------------------------------------------------------
-
-    def tr(self, df: pd.DataFrame) -> pd.DataFrame:
+    def vol_chg(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        计算 TR 指标
-        True Range 真实波动幅度
-        TR = max(high - low, abs(high - close), abs(low - close))
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-
-        Returns:
-            pd.DataFrame: 包含 TR 指标的数据框
+        成交量变化
         """
-        df['tr'] = pd.concat([
-            df['high'] - df['low'],
-            (df['high'] - df['close'].shift(1)).abs(),
-            (df['low'] - df['close'].shift(1)).abs()
-        ], axis=1).max(axis=1)
-
+        df['vol_chg'] = df['vol'].pct_change()
         return df
 
-    def atr(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
-        """
-        计算 ATR 指标
-        Average True Range 平均真实波动幅度
-        ATR = EMA(TR, period)
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            period: 计算 ATR 的周期
+    def avg_vol_chg(self, df: pd.DataFrame, period_list: list=[3,5,10,20]) -> pd.DataFrame:
+        for period in period_list:
+            df[f'avg_vol_chg_{period}'] = df['vol_chg'].rolling(window=period).mean()
 
-        Returns:
-            pd.DataFrame: 包含 ATR 指标的数据框
-        """
-        # 计算 TR
-        if 'tr' not in df.columns:
-            df = self.tr(df)
 
-        # 计算 ATR
-        df['atr'] = df['tr'].ewm(span=period).mean()
-
-        return df
-
-    def tr_pct(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        计算 TR PCT 指标
-        True Range 真实波动幅度的百分比
-        TR PCT = TR / close
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-
-        Returns:
-            pd.DataFrame: 包含 TR PCT 指标的数据框
-        """
-        # 计算 TR PCT
-        if 'tr' not in df.columns:
-            df = self.tr(df)
-
-        df['tr_pct'] = df['tr'] / df['close']
-
-        return df
-
-    def atr_pct(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
-        """
-        计算 ATR PCT 指标
-        Average True Range 平均真实波动幅度的百分比
-        ATR PCT = ATR / close
-        ATR = EMA(TR, period)
-        TR = max(high - low, abs(high - close), abs(low - close)
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            period: 计算 ATR PCT 的周期
-
-        Returns:
-            pd.DataFrame: 包含 ATR PCT 指标的数据框
-        """
-        # 计算 ATR
-        if 'atr' not in df.columns:
-            df = self.atr(df, period)
-
-        # 计算 ATR PCT
-        df['atr_pct'] = df['atr'] / df['close']
-
-        return df
-
-    def historical_volatility(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
-        """
-        计算 Historical Volatility 指标
-        历史波动率
-        log为自然对数
-        std为标准差
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            period: 计算 Historical Volatility 的周期
-
-        Returns:
-            pd.DataFrame: 包含 Historical Volatility 指标的数据框
-        """
-        # 计算历史波动率
-        df['historical_volatility'] = np.log(df['close'] / df['close'].shift(1)).rolling(window=period).std()
-
-        return df
 
     # 交易量指标 --------------------------------------------------------------
-    def obv(self, df: pd.DataFrame) -> pd.DataFrame:
+    def obv(self, df: pd.DataFrame,period_list: list=[3,5,10,20]) -> pd.DataFrame:
         """
         计算 OBV 指标
         On Balance Volume 能量潮指标
@@ -875,213 +582,12 @@ class Indicators:
             df['close'] > df['close'].shift(1),
             df['vol'],
             -df['vol']
-        ).cumsum()
+        )
 
-        return df
+        for period in period_list:
+            df[f'obv_{period}'] = df['obv'].rolling(window=period).sum()
 
-    def obv_ma(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
-        """
-        计算 OBV MA 指标
-        OBV 移动平均线
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            period: 计算 OBV MA 的周期
 
-        Returns:
-            pd.DataFrame: 包含 OBV MA 指标的数据框
-        """
-        # 计算 OBV
-        if 'obv' not in df.columns:
-            df = self.obv(df)
-
-        # 计算 OBV MA
-        df['obv_ma'] = df['obv'].rolling(window=period).mean()
-
-        return df
-
-    def obv_ema(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
-        """
-        计算 OBV EMA 指标
-        OBV 指数移动平均线
-        OBV EMA = EMA(OBV, period)
-        OBV = sum(Volume * sign(close - close(-1)))
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            period: 计算 OBV EMA 的周期
-
-        Returns:
-            pd.DataFrame: 包含 OBV EMA 指标的数据框
-        """
-        # 计算 OBV
-        if 'obv' not in df.columns:
-            df = self.obv(df)
-
-        # 计算 OBV EMA
-        df[f'obv_ema_{period}'] = df['obv'].ewm(span=period).mean()
-
-        return df
-
-    def obv_macd(self, df: pd.DataFrame, period_short: int = 10, period_long: int = 30, period_signal: int = 20) -> pd.DataFrame:
-        """
-        计算 OBV MACD 指标
-        OBV MACD 指数平滑异同移动平均线
-        OBV MACD = EMA(OBV, period_short) - EMA(OBV, period_long)
-        Signal = EMA(OBV MACD, period_signal)
-        Histogram = OBV MACD - Signal
-        OBV = sum(Volume * sign(close - close(-1)))
-        OBV EMA = EMA(OBV, period)
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-                period_short: 计算 OBV MACD 的短周期
-                period_long: 计算 OBV MACD 的长周期
-                period_signal: 计算 OBV MACD 的 Signal 的周期
-
-        Returns:
-            pd.DataFrame: 包含 OBV MACD 指标的数据框
-        """
-        # 计算 OBV
-        if 'obv' not in df.columns:
-            df = self.obv(df)
-
-        # 计算 OBV MACD
-        df[f'obv_macd_{period_short}_{period_long}'] = df['obv'].ewm(span=period_short).mean() - df['obv'].ewm(span=period_long).mean()
-
-        # 计算 Signal
-        df[f'obv_macd_signal_{period_signal}'] = df[f'obv_macd_{period_short}_{period_long}'].ewm(span=period_signal).mean()
-
-        # 计算 Histogram
-        df[f'obv_macd_histogram_{period_short}_{period_long}_{period_signal}'] = df[f'obv_macd_{period_short}_{period_long}'] - df[f'obv_macd_signal_{period_signal}']
-
-        return df
-
-    def avg_vol(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
-        """
-        计算 Avg Vol 指标
-        平均交易量
-        20日平均交易量
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            period: 计算 Avg Vol 的周期
-
-        Returns:
-            pd.DataFrame: 包含 Avg Vol 指标的数据框
-        """
-        df[f'avg_vol_{period}'] = df['vol'].rolling(window=period).mean()
-
-        return df
-
-    def avg_vol_pct(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
-        """
-        计算 Avg Vol PCT ���标
-        交易量的百分比
-        交易量除以20日平均交易量
-        Avg Vol PCT = vol / avg_vol
-        20日平均交易量
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            period: 计算 Avg Vol PCT 的周期
-
-        Returns:
-            pd.DataFrame: 包含 Avg Vol PCT 指标的数据框
-        """
-        # 计算 Avg Vol
-        if f'avg_vol_{period}' not in df.columns:
-            df = self.avg_vol(df, period)
-
-        # 计算 Avg Vol PCT
-        df[f'avg_vol_pct_{period}'] = df['vol'] / df[f'avg_vol_{period}']
-
-        return df
-
-    def vol_pct(self, df: pd.DataFrame, period=1) -> pd.DataFrame:
-        """
-        计算 Vol PCT 指标
-        交易量的百分比
-        交易量除以前一日的交易量
-        Vol PCT = vol / vol.shift(1)
-        20日平均交易量
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            period: 计算 Vol PCT 的周期
-
-        Returns:
-            pd.DataFrame: 包含 Vol PCT 指标的数据框
-        """
-        df['vol_pct'] = df['vol'] / df['vol'].shift(period)
-
-        return df
-
-    def vwap(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
-        """
-        计算 VWAP 指标
-        Volume Weighted Average Price 成交量加权平均价格
-        VWAP = sum(close * vol) / sum(vol)
-        20日VWAP
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            period: 计算 VWAP 的周期
-
-        Returns:
-            pd.DataFrame: 包含 VWAP 指标的数据框
-        """
-        # 计算 VWAP
-        df['vwap'] = (df['close'] * df['vol']).rolling(window=period).sum() / df['vol'].rolling(window=period).sum()
 
         return df
 
@@ -1138,69 +644,6 @@ class Indicators:
         """
         # 计算 Vol Kurtosis
         df['vol_kurtosis'] = (df['vol'] - df['vol'].rolling(window=period).mean()) / df['vol'].rolling(window=period).std()
-
-        return df
-
-    def capital_flow_ratio(self, df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
-        """
-        计算 Capital Flow Ratio 指标
-        资金流向比率
-        20日资金流向比率
-        Capital Flow Ratio = (close - open) / (high - low)
-        20日平均资金流向比率
-        20日资金流向比率
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            period: 计算 Capital Flow Ratio 的周期
-
-        Returns:
-            pd.DataFrame: 包含 Capital Flow Ratio 指标的数据框
-        """
-        # 计算资金流向
-        df['capital_flow'] = np.where(df['close'] > df['open'],
-                                      (df['high'] + df['low'] + df['close']) * df['vol'],
-                                      -(df['high'] + df['low'] + df['close']) * df['vol'])
-
-        # 计算资金流入/流出比率
-        df['capital_flow_ratio'] = df['capital_flow'].rolling(window=period).sum() / df['vol'].rolling(
-            window=period).sum()
-
-        return df
-
-    def volume_per_move(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        计算 Volume Per Move 指标
-        每次价格变动的交易量
-        20日每次价格变动的交易量
-        Volume Per Move = vol / (high - low)
-        20日平均每次价格变动的交易量
-        20日每次价格变动的交易量
-        Args:
-            df: 数据框，包含以下列：
-                - ts: 时间戳
-                - open: 开盘价
-                - high: 最高价
-                - low: 最低价
-                - close: 收盘价
-                - vol: 交易量
-                - volCcy: 交易币量
-                - valCcyQuote: 计价货币的量
-            period: 计算 Volume Per Move 的周期
-
-        Returns:
-            pd.DataFrame: 包含 Volume Per Move 指标的数据框
-        """
-        # 计算 Volume Per Move
-        df['volume_per_move'] = df['vol'] / (df['high'] - df['low'])
-        df.loc[df['high'] == df['low'], 'volume_per_move'] = 0
 
         return df
 
