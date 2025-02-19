@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
-
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 matplotlib.use('Agg')
 
@@ -47,13 +47,16 @@ class ImageGenerator:
 
         ax.axis('off')
 
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
+        canvas = FigureCanvas(fig)
+        canvas.draw()
+        img = np.frombuffer(canvas.tostring_argb(), dtype='uint8')
+        w, h = fig.canvas.get_width_height()
+        img = img.reshape((h, w, 4))
+        # 如果需要灰度图，可使用加权转换
+        img_gray = np.dot(img[..., 1:4], [0.299, 0.587, 0.114]).astype(np.uint8)  # 去掉 Alpha 通道
         plt.close(fig)
 
-        buf.seek(0)
-        image_array = np.array(Image.open(buf).convert("L"))
-        tensor = torch.from_numpy(image_array)
+        tensor = torch.from_numpy(img_gray.astype(np.uint8))
 
         return tensor.unsqueeze(0)
 
@@ -70,13 +73,17 @@ class ImageGenerator:
 
         ax.axis('off')
 
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
-        plt.close(fig)
+        canvas = FigureCanvas(fig)
+        canvas.draw()
 
-        buf.seek(0)
-        image_array = np.array(Image.open(buf).convert("L"))
-        tensor = torch.from_numpy(image_array)
+        img = np.frombuffer(canvas.tostring_argb(), dtype='uint8')
+        w, h = fig.canvas.get_width_height()
+        img = img.reshape((h, w, 4))
+        img_gray = np.dot(img[..., 1:4], [0.299, 0.587, 0.114]).astype(np.uint8)
+
+        tensor = torch.from_numpy(img_gray.astype(np.uint8))
+
+        plt.close(fig)
 
         return tensor.unsqueeze(0)
 
@@ -93,13 +100,17 @@ class ImageGenerator:
 
         ax.axis('off')
 
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
-        plt.close(fig)
+        canvas = FigureCanvas(fig)
+        canvas.draw()
 
-        buf.seek(0)
-        image_array = np.array(Image.open(buf).convert("L"))
-        tensor = torch.from_numpy(image_array)
+        img = np.frombuffer(canvas.tostring_argb(), dtype='uint8')
+        w, h = fig.canvas.get_width_height()
+        img = img.reshape((h, w, 4))
+        img_gray = np.dot(img[..., 1:4], [0.299, 0.587, 0.114]).astype(np.uint8)
+
+        tensor = torch.from_numpy(img_gray.astype(np.uint8))
+
+        plt.close(fig)
 
         return tensor.unsqueeze(0)
 
@@ -114,13 +125,17 @@ class ImageGenerator:
 
         ax.axis('off')
 
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
-        plt.close(fig)
+        canvas = FigureCanvas(fig)
+        canvas.draw()
 
-        buf.seek(0)
-        image_array = np.array(Image.open(buf).convert("L"))
-        tensor = torch.from_numpy(image_array)
+        img = np.frombuffer(canvas.tostring_argb(), dtype='uint8')
+        w, h = fig.canvas.get_width_height()
+        img = img.reshape((h, w, 4))
+        img_gray = np.dot(img[..., 1:4], [0.299, 0.587, 0.114]).astype(np.uint8)
+
+        tensor = torch.from_numpy(img_gray.astype(np.uint8))
+
+        plt.close(fig)
 
         return tensor.unsqueeze(0)
 

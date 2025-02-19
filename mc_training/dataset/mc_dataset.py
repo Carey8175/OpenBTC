@@ -1,13 +1,16 @@
+import os.path
+
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
-import numpy as np
+from tqdm import tqdm
 
 from mc_training.dataset.image_generator import ImageGenerator
+from mc_training.core.config import Config
 
 
 class RollingDataset(Dataset):
-    def __init__(self, data_loader, inst_id: str, window_size: int = 15, stride: int = 1, class_num=2):
+    def __init__(self, data_loader, inst_id: str, window_size: int = 15, stride: int = 1, class_num=2, load_img_local=False):
         """
         PyTorch Dataset for rolling window training with configurable stride.
         Args:
@@ -22,12 +25,15 @@ class RollingDataset(Dataset):
         self.stride = stride
         self.num_classes = class_num
         self.data = self.data_loader.get_data(inst_id)
+        self.img_data = []
         self.features_name = None
+        self.load_img_local = load_img_local
 
         if self.data.empty:
             raise ValueError(f"No data available for {inst_id}. Please check your DataLoader.")
 
         self._prepare_data()
+        self.get_images()
 
     def _prepare_data(self):
         """
@@ -67,18 +73,22 @@ class RollingDataset(Dataset):
         # Adjust length based on stride
         return (len(self.features) - self.window_size) // self.stride + 1
 
-    def get_images(self, idx) -> torch.Tensor:
+    def get_images(self):
         """
         Returns 4 channels feature images, macd, rsi, candles, vol  (rolling window of features and corresponding label).
         """
-        start_idx = idx * self.stride
-        end_idx = start_idx + self.window_size
-        window_data = self.features[start_idx:end_idx]
-        window_data = pd.DataFrame(window_data, columns=self.features_name)
+        if self.load_img_local and os.path.exists(os.path.join(Config.STATICS_PATH, 'img_data.pth')):
+            self.img_data = torch.load(os.path.join(Config.STATICS_PATH, 'img_data.pth'))
+            return
 
-        # generate image
-        return ImageGenerator.gen(window_data)
+        for idx in tqdm(range(len(self)), desc='Generating Images, or maybe you can have a cup of coffee'):
+            start_idx = idx * self.stride
+            end_idx = start_idx + self.window_size
+            window_data = self.features[start_idx:end_idx]
+            window_data = pd.DataFrame(window_data, columns=self.features_name)
+            self.img_data.append(ImageGenerator.gen(window_data))
 
+        torch.save(self.img_data, os.path.join(Config.STATICS_PATH, 'img_data.pth'))
 
     def __getitem__(self, idx):
         """
@@ -98,7 +108,7 @@ class RollingDataset(Dataset):
         # 添加单通道维度，确保形状为 [1, window_size, feature_dim]
         x = x.unsqueeze(0)
 
-        return x, torch.tensor(y, dtype=torch.long), self.get_images(idx)
+        return x, self.img_data[idx], torch.tensor(y, dtype=torch.long)
 
 
 # Example usage
@@ -108,15 +118,15 @@ if __name__ == '__main__':
 
     # Initialize the DataLoader and load data
     dl = MCDataLoader()
-    dl.load_data('BTC-USDT-SWAP', datetime(2024, 1, 2), datetime(2025, 2, 18))
+    dl.load_data('BTC-USDT-SWAP', datetime(2024, 12, 1), datetime(2025, 2, 18))
 
     # Create a PyTorch Dataset with a stride of 5
-    dataset = RollingDataset(data_loader=dl, inst_id='BTC-USDT-SWAP', window_size=30, stride=15)
+    dataset = RollingDataset(data_loader=dl, inst_id='BTC-USDT-SWAP', window_size=30, stride=1, load_img_local=True)
 
     # Example: Fetch the first sample
     import time
     time1 = time.time()
-    features, label , img = dataset[0]
+    features, img , label = dataset[0]
     print('Time cost of generating X' , time.time() - time1)
     print("Features shape:", features.shape)  # Should be [window_size, feature_dim]
     print("Label:", label)
