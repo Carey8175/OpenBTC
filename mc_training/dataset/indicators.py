@@ -778,3 +778,19 @@ class Indicators:
         df.drop(columns=['tp', 'md'], inplace=True)
 
         return df
+
+    def ma(self, df : pd.DataFrame, period_list: list = [20, 50]) -> pd.DataFrame:
+        """
+        计算移动平均线
+        Args:
+            df: 数据框，包含以下列：
+                - close: 收盘价
+            period_list: 计算移动平均线的周期
+
+        Returns:
+            pd.DataFrame: 包含移动平均线的数据框
+        """
+        for period in period_list:
+            df[f'MA_{period}'] = df['close'].rolling(window=period).mean()
+
+        return df
