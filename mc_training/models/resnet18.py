@@ -1,78 +1,47 @@
 import torch
 import torch.nn as nn
-from torchvision.models import resnet18, resnet50
+import torch.nn.functional as F
+from torchvision.models import resnet18
 
 from mc_training.models.layers.column_normalization import PerFeatureNormalization
-from mc_training.models.layers.feature_sort import PositionalSortingLayer
 
 
-class ResNet18(nn.Module):
+class ResNetDualInput(nn.Module):
     def __init__(self, class_num=3, window_size=30, feature_num=7, intermediate_dim=128):
         """
-        Modified ResNet16 model with a fully connected layer before ResNet.
-        Args:
-            num_classes: Number of output classes.
-            input_height: Height of the input data.
-            input_width: Width of the input data.
-            intermediate_dim: Dimension of the output from the fully connected layer.
+        Modified ResNet model that processes x and img separately through ResNet,
+        then concatenates their feature vectors for final classification.
         """
-        super(ResNet18, self).__init__()
-        # Normalize each sample independently
-        self.norm = PerFeatureNormalization(method="min_max")
-        # Sort features based on importance
-        self.sort = PositionalSortingLayer(feature_dim=feature_num)
+        super(ResNetDualInput, self).__init__()
 
-        # Fully connected layer before ResNet
-        input_dim = window_size * feature_num  # Flattened input dimension
+        # Feature extraction ResNets
+        self.resnet_x = resnet18(weights=None)
+        self.resnet_x.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+        self.resnet_x.fc = nn.Identity()  # Remove classification head, keep feature extraction
+        self.resnet_img = resnet18(weights=None)
+        self.resnet_img.conv1 = nn.Conv2d(4, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+        self.resnet_img.fc = nn.Identity()
+
+        # Fully connected layer for final classification
         self.fc = nn.Sequential(
-            nn.Linear(input_dim, intermediate_dim),
+            nn.Linear(512 * 2, 256),  # Concatenate features from both ResNets (512 + 512)
             nn.ReLU(),
-            nn.Linear(intermediate_dim, 1 * window_size * feature_num),  # Output to match [batch_size, 1, 30, 30]
-            nn.ReLU()
+            nn.Linear(256, class_num)
         )
 
-        # Reshape dimensions for ResNet
-        self.resnet_input_channels = 1  # Single channel input
-        self.resnet_input_height = window_size
-        self.resnet_input_width = feature_num
+        self.pfn = PerFeatureNormalization(method="min_max")
 
-        # Modified ResNet18
-        self.resnet = resnet18(num_classes=class_num)
-        self.resnet.conv1 = nn.Conv2d(
-            in_channels=self.resnet_input_channels,  # Single channel
-            out_channels=64,  # Matches original ResNet18
-            kernel_size=(7, 7),
-            stride=(2, 2),
-            padding=(3, 3),
-            bias=False
-        )
+    def forward(self, x, img):
+        # Extract features separately
+        x = self.pfn(x)
 
-    def forward(self, x):
-        # Normalize each sample independently
-        # x = self.norm(x)
+        feat_x = self.resnet_x(x)  # [batch_size, 512]
+        feat_img = self.resnet_img(img)  # [batch_size, 512]
 
-        # Flatten input for the fully connected layer
-        batch_size = x.size(0)
-        x = x.view(batch_size, -1)  # Flatten to [batch_size, input_dim]
+        # Concatenate feature vectors
+        combined_feat = torch.cat([feat_x, feat_img], dim=1)  # [batch_size, 1024]
 
-        # Fully connected layer
-        # x = self.fc(x)
-        #
-        # # Reshape to match ResNet input dimensions
-        # x = x.view(batch_size, self.resnet_input_channels, self.resnet_input_height, self.resnet_input_width)
+        # Classification
+        output = self.fc(combined_feat)  # [batch_size, class_num]
 
-        # Sort features based on importance
-        # x, sorted_index = self.sort(x)
-
-        # Pass through ResNet
-        return self.resnet(x)
-
-
-# Example usage
-if __name__ == '__main__':
-    model = ResNet18(num_classes=3, input_height=30, input_width=5, intermediate_dim=128)
-
-    # Example input: batch_size=32, single channel, 30x5
-    x = torch.randn(32, 1, 30, 5)
-    output = model(x)
-    print("Output shape:", output.shape)  # Should be [32, 3] for 3 classes
+        return output
