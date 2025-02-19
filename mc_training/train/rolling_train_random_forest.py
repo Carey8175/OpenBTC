@@ -8,6 +8,7 @@ from loguru import logger
 from torch.utils.data import DataLoader, Subset
 import matplotlib.pyplot as plt
 
+
 class RollingRFTrainer:
     def __init__(self, dataset, unit_size=100, stride_day=50, train_ratio=0.8, random_state=42):
         """
@@ -59,7 +60,8 @@ class RollingRFTrainer:
         features, labels = [], []
         for i in range(len(dataset)):
             x, y = dataset[i]
-            features.append(x.numpy().flatten())  # Flatten window * feature into a single vector
+            # features.append(x.numpy().flatten())  # Flatten window * feature into a single vector
+            features.append(x[0][-1].squeeze(0).numpy())  # Only keep the last candle
             labels.append(y.item())
         return np.array(features), np.array(labels)
 
@@ -184,13 +186,13 @@ if __name__ == '__main__':
     from mc_training.dataset.data_loader import MCDataLoader
 
     dl = MCDataLoader()
-    dl.load_data('BTC-USDT-SWAP', datetime(2024, 1, 2), datetime(2025, 1, 4),
-                 add_delta=False,
+    dl.load_data('BTC-USDT-SWAP', datetime(2024, 11, 24), datetime(2025, 2, 18),
+                 add_delta=True,
                  add_indicators=True)
-    dataset = RollingDataset(dl, inst_id="BTC-USDT-SWAP", window_size=20, stride=5, class_num=2)
+    dataset = RollingDataset(dl, inst_id="BTC-USDT-SWAP", window_size=30, stride=1, class_num=2)
 
-    trainer = RollingRFTrainer(dataset, unit_size=50, stride_day=50, train_ratio=0.8)
+    trainer = RollingRFTrainer(dataset, unit_size=int(len(dataset) / 24), stride_day=50, train_ratio=0.6)
     trainer.set_random_seed(42)
 
-    best_model, avg_metrics = trainer.rolling_train(total_days=360, start_date=datetime(2024, 1, 2))
+    best_model, avg_metrics = trainer.rolling_train(total_days=int(len(dataset) / 24), start_date=datetime(2024, 11, 24))
     # logger.info(f" Model Metrics: {avg_metrics}")

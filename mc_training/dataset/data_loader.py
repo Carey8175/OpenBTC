@@ -257,7 +257,7 @@ if __name__ == '__main__':
     dl = MCDataLoader()
     # Load data for BTC-USDT-SWAP from database
     time1 = time.time()
-    dl.load_data('BTC-USDT-SWAP', datetime(2024, 11, 24), datetime(2025, 1, 22))
+    dl.load_data('BTC-USDT-SWAP', datetime(2024, 11, 24), datetime(2025, 2, 18))
     # dl.add_indicators('BTC-USDT-SWAP')
     print(f"Time taken: {time.time() - time1:.2f}s")
 
