@@ -1,13 +1,17 @@
 import io
 import torch
+import matplotlib
 import pandas as pd
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 
 
+matplotlib.use('Agg')
+
+
 class ImageGenerator:
-    IMAGE_SIZE = (6, 3)
+    IMAGE_SIZE = (2, 1)
 
     @staticmethod
     def candles(data: pd.DataFrame) -> torch.Tensor:
@@ -48,8 +52,9 @@ class ImageGenerator:
         plt.close(fig)
 
         buf.seek(0)
-        image = Image.open(buf).convert("L")  # 转换为灰度图
-        tensor = torch.tensor(torch.ByteTensor(torch.from_numpy(np.array(image))))
+        image_array = np.array(Image.open(buf).convert("L"))
+        tensor = torch.from_numpy(image_array)
+
         return tensor.unsqueeze(0)
 
     @staticmethod
@@ -70,8 +75,8 @@ class ImageGenerator:
         plt.close(fig)
 
         buf.seek(0)
-        image = Image.open(buf).convert("L")  # 转换为灰度图
-        tensor = torch.tensor(torch.ByteTensor(torch.from_numpy(np.array(image))))
+        image_array = np.array(Image.open(buf).convert("L"))
+        tensor = torch.from_numpy(image_array)
 
         return tensor.unsqueeze(0)
 
@@ -93,8 +98,8 @@ class ImageGenerator:
         plt.close(fig)
 
         buf.seek(0)
-        image = Image.open(buf).convert("L")  # 转换为灰度图
-        tensor = torch.tensor(torch.ByteTensor(torch.from_numpy(np.array(image))))
+        image_array = np.array(Image.open(buf).convert("L"))
+        tensor = torch.from_numpy(image_array)
 
         return tensor.unsqueeze(0)
 
@@ -114,8 +119,8 @@ class ImageGenerator:
         plt.close(fig)
 
         buf.seek(0)
-        image = Image.open(buf).convert("L")
-        tensor = torch.tensor(torch.ByteTensor(torch.from_numpy(np.array(image))))
+        image_array = np.array(Image.open(buf).convert("L"))
+        tensor = torch.from_numpy(image_array)
 
         return tensor.unsqueeze(0)
 
