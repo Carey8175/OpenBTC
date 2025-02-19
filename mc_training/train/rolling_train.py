@@ -300,8 +300,8 @@ if __name__ == '__main__':
         "inst_id": 'BTC-USDT-SWAP',
         "add_indicators": True,
         "add_delta": False,
-        "unit_size": 100,
-        "day_stride": 50,
+        "unit_size": 100,   # 单次训练的天数
+        "day_stride": 50,   # 滑动窗口的天数
         "learning_rate": 5e-5
     }
 

@@ -1,9 +1,9 @@
 {
     "database": {
-        "host": "47.236.8.43",
+        "host": "127.0.0.1",
         "user": "default",
-        "password": "123456",
-        "database": "mc",
+        "password": "",
+        "database": "mc_1H",
         "port": 9000
     }
 }
