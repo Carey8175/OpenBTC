@@ -1,6 +1,9 @@
+import pandas as pd
 import torch
 from torch.utils.data import Dataset
 import numpy as np
+
+from mc_training.dataset.image_generator import ImageGenerator
 
 
 class RollingDataset(Dataset):
@@ -64,6 +67,19 @@ class RollingDataset(Dataset):
         # Adjust length based on stride
         return (len(self.features) - self.window_size) // self.stride + 1
 
+    def get_images(self, idx) -> torch.Tensor:
+        """
+        Returns 4 channels feature images, macd, rsi, candles, vol  (rolling window of features and corresponding label).
+        """
+        start_idx = idx * self.stride
+        end_idx = start_idx + self.window_size
+        window_data = self.features[start_idx:end_idx]
+        window_data = pd.DataFrame(window_data, columns=self.features_name)
+
+        # generate image
+        return ImageGenerator.gen(window_data)
+
+
     def __getitem__(self, idx):
         """
         Returns a single sample (rolling window of features and corresponding label).
@@ -82,7 +98,7 @@ class RollingDataset(Dataset):
         # 添加单通道维度，确保形状为 [1, window_size, feature_dim]
         x = x.unsqueeze(0)
 
-        return x, torch.tensor(y, dtype=torch.long)
+        return x, torch.tensor(y, dtype=torch.long), self.get_images(idx)
 
 
 # Example usage
@@ -92,15 +108,28 @@ if __name__ == '__main__':
 
     # Initialize the DataLoader and load data
     dl = MCDataLoader()
-    dl.load_data('BTC-USDT-SWAP', datetime(2024, 1, 2), datetime(2025, 1, 4))
+    dl.load_data('BTC-USDT-SWAP', datetime(2024, 1, 2), datetime(2025, 2, 18))
 
     # Create a PyTorch Dataset with a stride of 5
     dataset = RollingDataset(data_loader=dl, inst_id='BTC-USDT-SWAP', window_size=30, stride=15)
 
     # Example: Fetch the first sample
-    features, label = dataset[0]
+    import time
+    time1 = time.time()
+    features, label , img = dataset[0]
+    print('Time cost of generating X' , time.time() - time1)
     print("Features shape:", features.shape)  # Should be [window_size, feature_dim]
     print("Label:", label)
 
     # Check the total number of samples
     print("Total samples:", len(dataset))
+    df = pd.DataFrame(features.squeeze().cpu().numpy(), columns=dataset.features_name)
+    # print(df.to_string())
+
+    from PIL import Image
+    print(f'Image shape: {img.shape}')
+    # print(img.cpu().numpy())
+    for i in range(img.shape[0]):
+        img_ = img[i].cpu().numpy()
+        img_ = Image.fromarray(img_)
+        img_.show()
