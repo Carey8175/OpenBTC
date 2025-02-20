@@ -241,7 +241,8 @@ class RollingTrainer:
 
 # Example usage
 if __name__ == '__main__':
-    from mc_training.models.resnet18 import ResNetDualInput as McModel
+    # from mc_training.models.resnet18 import ResNetDualInput as McModel
+    from mc_training.models.transmodel import TransformerEncoderDualInput as McModel
     from mc_training.dataset.data_loader import MCDataLoader
     from mc_training.dataset.mc_dataset import RollingDataset
 
