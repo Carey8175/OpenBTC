@@ -59,7 +59,7 @@ class RollingRFTrainer:
         """
         features, labels = [], []
         for i in range(len(dataset)):
-            x, y = dataset[i]
+            x, img, y = dataset[i]
             # features.append(x.numpy().flatten())  # Flatten window * feature into a single vector
             features.append(x[0][-1].squeeze(0).numpy())  # Only keep the last candle
             labels.append(y.item())
@@ -186,10 +186,10 @@ if __name__ == '__main__':
     from mc_training.dataset.data_loader import MCDataLoader
 
     dl = MCDataLoader()
-    dl.load_data('BTC-USDT-SWAP', datetime(2024, 11, 24), datetime(2025, 2, 18),
+    dl.load_data('BTC-USDT-SWAP', datetime(2024, 12, 1), datetime(2025, 2, 18),
                  add_delta=True,
                  add_indicators=True)
-    dataset = RollingDataset(dl, inst_id="BTC-USDT-SWAP", window_size=30, stride=1, class_num=2)
+    dataset = RollingDataset(dl, inst_id="BTC-USDT-SWAP", window_size=30, stride=1, class_num=2, load_img_local=True)
 
     trainer = RollingRFTrainer(dataset, unit_size=int(len(dataset) / 24), stride_day=50, train_ratio=0.6)
     trainer.set_random_seed(42)
