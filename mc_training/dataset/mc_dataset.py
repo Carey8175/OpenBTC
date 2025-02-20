@@ -154,3 +154,4 @@ if __name__ == '__main__':
     for i in range(len(dataset)):
         features, img, label = dataset[i]
         print(i * dataset.stride + dataset.window_size, label)
+
