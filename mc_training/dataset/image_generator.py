@@ -7,7 +7,6 @@ from PIL import Image
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
-matplotlib.use('Agg')
 
 
 class ImageGenerator:
