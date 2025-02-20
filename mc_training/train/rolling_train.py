@@ -1,16 +1,5 @@
-import torch
-import random
-import torch.nn as nn
-import torch.optim as optim
-import numpy as np
-from tqdm import tqdm
-from collections import Counter
-from torch.utils.data import DataLoader, Subset
-from sklearn.metrics import accuracy_score, classification_report, precision_recall_fscore_support
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from datetime import datetime, timedelta
-from loguru import logger
-
 import torch
 import random
 import torch.nn as nn
@@ -71,6 +60,8 @@ class RollingTrainer:
         """
         logger.info("Starting rolling training...")
         metrics_list = []
+        # 自身的data添加列prediction
+        self.dataset.data['prediction'] = np.nan
 
         total_samples = len(self.dataset)
         start_idx = 0
@@ -92,7 +83,7 @@ class RollingTrainer:
             criterion = nn.CrossEntropyLoss(weight=class_weights.to(self.device))
 
             # 会返回当前阶段最好的F1值模型所对应的指标
-            train_loss, best_val = self.train_one_phase(train_loader, test_loader, optimizer, criterion)
+            train_loss, best_val = self.train_one_phase(train_loader, test_loader, optimizer, criterion, start_idx+self.w_train)
             accuracy, precision, recall, f1 = best_val
 
             metrics_list.append((train_loss[-1], accuracy, precision, recall, f1))
@@ -113,7 +104,7 @@ class RollingTrainer:
         labels = [dataset[i][2].item() for i in range(len(dataset))]
         return dict(Counter(labels))
 
-    def train_one_phase(self, train_loader, val_loader, optimizer, criterion):
+    def train_one_phase(self, train_loader, val_loader, optimizer, criterion, test_start_idx):
         """
         Train the model for multiple epochs in one phase with real-time tqdm updates.
         Args:
@@ -121,6 +112,7 @@ class RollingTrainer:
             val_loader: DataLoader for validation data.
             optimizer: Optimizer for training.
             criterion: Loss function.
+            test_start_idx: The starting index of the test data in the dataset.
         Returns:
             train_losses_per_epoch: List of average training losses for each epoch.
             val_losses_per_epoch: List of average validation losses for each epoch.
@@ -214,6 +206,10 @@ class RollingTrainer:
             # Track best F1 score
             if f1 > best_f1[3]:
                 best_f1 = (overall_accuracy, precision, recall, f1)
+                # 更新自身data的prediction
+                indices = [idx * self.dataset.stride + self.dataset.window_size - 1 for idx in val_loader.dataset.indices]
+                self.dataset.data.loc[indices, 'prediction'] = all_predictions
+
 
         return train_losses_per_epoch, best_f1
 
@@ -273,8 +269,11 @@ if __name__ == '__main__':
     dl.load_data(train_params['inst_id'], train_params['start_date'], train_params['end_date'],
                  add_indicators=train_params['add_indicators'],
                  add_delta=train_params['add_delta'])
-    # normalize data
-    # dl.normalize_data('BTC-USDT-SWAP', method='min-max')
+
+    data_df = dl.data['BTC-USDT-SWAP'].copy()
+    data_df = data_df[['open', 'high', 'low', 'close', 'ts']]
+    data_df.reset_index(drop=True, inplace=True)
+
     dataset = RollingDataset(data_loader=dl,
                              inst_id=train_params['inst_id'],
                              window_size=train_params['Wx'],
@@ -299,3 +298,14 @@ if __name__ == '__main__':
 
     # Perform rolling training
     avg_metrics = trainer.rolling_train()
+
+    # for backtest
+    from mc_training.core.backtest import Backtest
+
+    labeled_data = trainer.dataset.data.dropna(subset=['prediction'])['prediction']
+    # merge labeled_data with original data according to index
+    labeled_data = data_df.merge(labeled_data, left_index=True, right_index=True)
+    labeled_data.dropna(subset=['prediction'], inplace=True)
+
+    bt = Backtest()
+    bt.backtest(labeled_data)
