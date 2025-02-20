@@ -65,6 +65,7 @@ class RollingDataset(Dataset):
 
         self.features_name = self.data.columns
         self.features = self.data.values
+        self.data.reset_index(drop=True, inplace=True)
 
     def __len__(self):
         """
@@ -113,12 +114,12 @@ class RollingDataset(Dataset):
 
 # Example usage
 if __name__ == '__main__':
-    from data_loader import MCDataLoader
+    from mc_training.dataset.data_loader import MCDataLoader
     from datetime import datetime
 
     # Initialize the DataLoader and load data
     dl = MCDataLoader()
-    dl.load_data('BTC-USDT-SWAP', datetime(2024, 12, 1), datetime(2025, 2, 18))
+    dl.load_data('BTC-USDT-SWAP', datetime(2024, 12, 1), datetime(2025, 2, 18), add_delta=False)
 
     # Create a PyTorch Dataset with a stride of 5
     dataset = RollingDataset(data_loader=dl, inst_id='BTC-USDT-SWAP', window_size=30, stride=1, load_img_local=True)
@@ -126,6 +127,7 @@ if __name__ == '__main__':
     # Example: Fetch the first sample
     import time
     time1 = time.time()
+
     features, img , label = dataset[0]
     print('Time cost of generating X' , time.time() - time1)
     print("Features shape:", features.shape)  # Should be [window_size, feature_dim]
@@ -143,3 +145,13 @@ if __name__ == '__main__':
         img_ = img[i].cpu().numpy()
         img_ = Image.fromarray(img_)
         img_.show()
+
+
+    # 测试数据集的迭代器
+    dataset.data['return5'] = dataset.data['close'].shift(-5) / dataset.data['close'] - 1
+    dataset.data['label'] = 0
+    dataset.data.loc[dataset.data['return5'] > 0, 'label'] = 1
+    for i in range(len(dataset)):
+        features, img, label = dataset[i]
+        print(i * dataset.stride + dataset.window_size, label)
+
